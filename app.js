@@ -99,7 +99,7 @@ async function buscarGestoDoBD(letraReconhecida, confianca) {
     const palavraChave = letraReconhecida.toUpperCase(); 
     
     try {
-        const response = await fetch(`http://localhost:3000/api/vocabulario/${palavraChave}`); 
+        const response = await fetch(`https://sign2talk.onrender.com/api/vocabulario/${palavraChave}`); 
         
         if (response.status === 404) {
             atualizarResultado(letraReconhecida, confianca, null); 
@@ -277,7 +277,7 @@ async function saveModel() {
         
         atualizarStatus("💾 Salvando modelo no servidor...");
         
-        const response = await fetch('http://localhost:3000/api/modelo', {
+        const response = await fetch('https://sign2talk.onrender.com/api/modelo', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(datasetObj)
@@ -299,7 +299,7 @@ async function loadModel() {
     try {
         atualizarStatus("📂 Buscando modelo do servidor...");
         
-        const response = await fetch('http://localhost:3000/api/modelo');
+        const response = await fetch('https://sign2talk.onrender.com/api/modelo');
         
         if (response.status === 404) {
             atualizarStatus("ℹ️ Nenhum modelo salvo encontrado no servidor.");
@@ -354,7 +354,7 @@ function atualizarResultado(letraOuPalavra, confianca, urlImagem) {
         
         if (imagemGesto) {
             if (urlImagem) {
-                imagemGesto.src = `http://localhost:3000${urlImagem}`; 
+                imagemGesto.src = `https://sign2talk.onrender.com${urlImagem}`; 
                 imagemGesto.style.display = 'block';
             } else {
                 imagemGesto.style.display = 'none';
