@@ -3,479 +3,179 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign2Talk - Tradutor de Libras</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/knn-classifier"></script>
+    <title>Sign2Talk - Treinamento e Tradução de Libras</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/knn-classifier@latest"></script>
     <style>
-        /* =========================================== */
-        /* ESTILOS DE LAYOUT (Baseado na imagem de referência) */
-        /* =========================================== */
+        /* CSS COMPLETO DA ESTRUTURA ORIGINAL */
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body {
-            background: linear-gradient(to top, #4e4d6d, #6f6da6, #6f6da6);
-            color: #eceff1;
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center; 
-            min-height: 100vh;
-        }
-
-        nav {
-            width: 100%;
-            background-color: #181740; 
-            padding: 10px 20px;
-            box-sizing: border-box; 
-        }
-
-        .innav {
-            display: flex;
-            justify-content: space-between; 
-            align-items: center;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        .innav img { height: 28px; } /* Ajuste o tamanho dos ícones/logo */
-
-        .container {
-            display: flex;
-            justify-content: center;
-            align-items: center; 
-            padding: 20px;
-            width: 100%;
-            max-width: 1200px; 
-            box-sizing: border-box;
-            flex-grow: 1; /* Permite que o container cresça para centralizar verticalmente */
-        }
-
-        .both {
-            display: flex;
-            flex-direction: row; 
-            gap: 30px; 
-            justify-content: center;
-            flex-wrap: wrap; 
-        }
-
-        .imageout {
-            width: 640px; 
-            height: 480px; 
-            background: #000000; 
-            border-radius: 10px;
-            overflow: hidden; 
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-        }
-        /* Ajuste para fazer o vídeo preencher o quadrado preto */
-        .imageout video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transform: scaleX(-1); /* Espelha a imagem da webcam */
-        }
-        
-        .textout {
-            width: 300px; 
-            display: flex;
-            flex-direction: column;
-            gap: 15px; 
-        }
-
-        /* Área dos Resultados e Controles */
-        .innertext {
-            background: #181740;
-            padding: 15px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-
-        .results-box {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-            margin-top: 10px;
-        }
-
-        #resultado {
-            font-size: 2em;
-            font-weight: bold;
-            margin: 5px 0;
-            min-height: 35px;
-        }
-
-        .confidence {
-            font-size: 1em;
-            opacity: 0.8;
-            margin-bottom: 10px;
-        }
-        
-        /* Imagem do Gesto do BD */
-        #imagemGesto {
-            width: 100%;
-            max-height: 200px;
-            object-fit: contain;
-            margin-top: 10px;
-            border-radius: 4px;
-        }
-
-        /* Botoes Iniciar */
-        .buttonscontainer {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .button, .button2 {
-            border: none;
-            border-radius: 8px;
-            padding: 10px 15px;
-            color: white;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
-            background: #181740;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .button:hover, .button2:hover { background: #06063b; }
-        .button2 img { height: 20px; }
-
-        /* Treinamento */
-        .training-section {
-            margin-top: 15px;
-        }
-
-        .letters-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr); /* 7 Colunas para parecer com a imagem */
-            gap: 5px;
-            margin: 10px 0;
-        }
-
-        .btn-letter {
-            background: #3e3e58;
-            color: white;
-            padding: 6px 3px;
-            font-size: 11px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .btn-letter:hover { background: #5c5c7d; }
-        .btn-letter:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        /* Controles (Detecção, Treinar, Reconhecer) */
-        .control-buttons {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            justify-content: center;
-            margin-top: 15px;
-        }
-        .btn {
-            padding: 8px 12px;
-            border: none;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 600;
-            color: white;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .btn-success { background: #28a745; }
-        .btn-danger { background: #dc3545; }
-        .btn-warning { background: #ffc107; color: #212529; }
-        .btn-primary { background: #007bff; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); overflow: hidden; }
+        header { background: linear-gradient(135deg, #2c3e50, #34495e); color: white; padding: 30px; text-align: center; }
+        h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .subtitle { font-size: 1.2em; opacity: 0.9; }
+        .upload-section { background: #e8f5e8; padding: 20px; margin: 20px; border-radius: 10px; border: 2px dashed #27ae60; }
+        .upload-area { border: 2px dashed #3498db; border-radius: 10px; padding: 30px; text-align: center; background: #f8f9fa; margin: 15px 0; cursor: pointer; transition: all 0.3s ease; }
+        .upload-area:hover { background: #e3f2fd; border-color: #2980b9; }
+        .upload-area.dragover { background: #d4edda; border-color: #27ae60; }
+        .upload-icon { font-size: 48px; margin-bottom: 15px; }
+        .file-input { display: none; }
+        .upload-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
+        .btn-upload { background: #3498db; padding: 12px; border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; }
+        .btn-upload:hover { background: #2980b9; }
+        .btn-folder { background: #9b59b6; }
+        .btn-folder:hover { background: #8e44ad; }
+        .preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; margin: 15px 0; max-height: 200px; overflow-y: auto; }
+        .preview-item { position: relative; border: 2px solid #ddd; border-radius: 5px; overflow: hidden; }
+        .preview-img { width: 100%; height: 80px; object-fit: cover; }
+        .preview-label { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.7); color: white; padding: 2px 5px; font-size: 10px; text-align: center; }
+        .remove-btn { position: absolute; top: 2px; right: 2px; background: #e74c3c; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; }
+        .batch-training { background: #fff3cd; padding: 15px; border-radius: 10px; margin: 15px 0; border: 1px solid #ffeaa7; }
+        .training-progress { margin: 10px 0; }
+        .progress-bar { width: 100%; height: 20px; background: #ecf0f1; border-radius: 10px; overflow: hidden; }
+        .progress-fill { height: 100%; background: #27ae60; transition: width 0.3s ease; }
+        .progress-text { text-align: center; margin-top: 5px; font-size: 12px; }
+        .cameras-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px; }
+        .camera-box { background: #f8f9fa; padding: 15px; border-radius: 10px; text-align: center; }
+        .webcam-view { width: 100%; max-width: 400px; height: 300px; border: 3px solid #34495e; border-radius: 10px; background: #000; }
+        .hand-canvas { width: 100%; max-width: 400px; height: 300px; border: 3px solid #27ae60; border-radius: 10px; background: #000; }
+        .controls-section { padding: 20px; background: #ecf0f1; margin: 20px; border-radius: 10px; }
+        .button-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 20px; }
+        button { padding: 12px 15px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; color: white; }
+        button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .btn-webcam { background: #2ecc71; }
+        .btn-train { background: #e74c3c; }
+        .btn-recognize { background: #9b59b6; }
         .btn-stop { background: #95a5a6; }
         .btn-save { background: #f39c12; }
-        .btn-load { background: #1abc9c; }
         .btn-clear { background: #e67e22; }
-
-        /* Status */
-        .status-info {
-            background: #181740; 
-            padding: 8px;
-            border-radius: 4px;
-            margin-top: 15px;
-            font-size: 12px;
-            color: #eceff1; 
-            border-left: 3px solid #007bff;
-        }
-
-        .loading {
-            display: inline-block;
-            width: 14px;
-            height: 14px;
-            border: 2px solid #f3f3f3;
-            border-top: 2px solid #3498db;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
+        .btn-load { background: #1abc9c; }
+        .letters-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 15px 0; }
+        .btn-letter { background: #34495e; font-size: 12px; padding: 8px 5px; }
+        .results-section { background: white; padding: 25px; border-radius: 10px; margin: 20px; border: 2px solid #3498db; display: flex; flex-direction: column; align-items: center; }
+        .loading { display: inline-block; width: 20px; height: 20px; border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
+        /* Novos estilos para resultado do BD */
+        #resultado { font-size: 3em; font-weight: bold; margin-bottom: 10px; }
+        #imagemGesto { max-width: 100%; max-height: 250px; border-radius: 8px; margin-top: 20px; border: 3px solid #667eea; }
     </style>
 </head>
 <body>
-    <nav>
-        <div class="innav">
-            <img src="Group 1.svg" alt="Logo">
-            <img src="account_circle.svg" alt="Conta">
-        </div>
-    </nav>
     <div class="container">
-        <div class="both">
-            <div class="imageout">
-                <video id="webcam" autoplay playsinline></video>
-                <canvas id="handCanvas" style="display: none;"></canvas> </div> 
+        <header>
+            <h1>🤟 Reconhecedor de Libras - Treinamento</h1>
+            <p class="subtitle">Treine com webcam OU carregue imagens existentes</p>
+        </header>
+
+        <div class="upload-section">
+            <h3 class="section-title">📁 Upload de Imagens Existentes</h3>
             
-            <div class="textout">
-                <div class="innertext">
-                    <p id="statusText" style="margin-bottom: 10px;">IA carregada! Clique em 'Iniciar'.</p>
-                    
-                    <div class="results-box">
-                        Sinal Reconhecido:
-                        <div id="resultado">---</div>
-                        <div class="confidence" id="confianca">Confiança: 0%</div>
-                        <img id="imagemGesto" style="display: none;" alt="Gesto em Libras">
+            <div class="upload-area" id="uploadArea" ondragover="this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleFileSelect(event)">
+                <div class="upload-icon">📁</div>
+                <h4>Arraste e solte imagens aqui</h4>
+                <p>ou clique para selecionar arquivos</p>
+                <input type="file" id="fileInput" class="file-input" multiple accept="image/*" onchange="handleFileSelect(event)">
+                <p style="font-size: 12px; color: #666; margin-top: 10px;">
+                    Suporte: JPG, PNG, GIF • Máx: 50 imagens
+                </p>
+            </div>
+            
+            <div class="upload-buttons">
+                <button class="btn-upload" onclick="document.getElementById('fileInput').click()">
+                    📸 Selecionar Imagens
+                </button>
+                <button class="btn-upload btn-folder" onclick="trainBatchImages()">
+                    🚀 Treinar Todas as Imagens
+                </button>
+            </div>
+            
+            <div class="preview-grid" id="previewGrid">
+                </div>
+            
+            <div class="batch-training">
+                <h4>🎯 Treinamento em Lote</h4>
+                <p>Selecione uma letra para associar às imagens carregadas:</p>
+                
+                <select id="batchLetterSelect" style="padding: 8px; border-radius: 5px; margin: 10px 0; width: 100%;">
+                    <option value="">-- Selecione uma letra --</option>
+                    <option value="A">Letra A</option><option value="B">Letra B</option><option value="C">Letra C</option><option value="D">Letra D</option><option value="E">Letra E</option><option value="F">Letra F</option><option value="G">Letra G</option><option value="H">Letra H</option><option value="I">Letra I</option><option value="J">Letra J</option><option value="K">Letra K</option><option value="L">Letra L</option><option value="M">Letra M</option><option value="N">Letra N</option><option value="O">Letra O</option><option value="P">Letra P</option><option value="Q">Letra Q</option><option value="R">Letra R</option><option value="S">Letra S</option><option value="T">Letra T</option><option value="U">Letra U</option><option value="V">Letra V</option><option value="W">Letra W</option><option value="X">Letra X</option><option value="Y">Letra Y</option><option value="Z">Letra Z</option>
+                </select>
+                
+                <div class="training-progress" id="trainingProgress" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill" style="width: 0%"></div>
                     </div>
-
-                    <div class="buttonscontainer">
-                        <button class="button2">
-                            <img src="image 21.svg" alt="Bandeira">
-                        </button>
-                        <button class="button" id="play" onclick="initWebcam()">
-                            Iniciar
-                        </button>
-                        <button class="button2">
-                            <img src="Rectangle 92.svg" alt="Virar Câmera">
-                        </button>
-                    </div>
-
-                    <div class="training-section">
-                        Treinar Letras:
-                        <div class="letters-grid" id="lettersGrid">
-                            </div>
-                    </div>
-
-                    <div class="control-buttons">
-                        <button class="btn btn-primary" id="captureBtn" onclick="trainLetterWrapper()" disabled>
-                            Treinar
-                        </button>
-                        <button class="btn btn-success" id="recognizeBtn" onclick="startRecognition()" disabled>
-                            Reconhecer
-                        </button>
-                        <button class="btn btn-danger" id="stopBtn" onclick="stopRecognition()" disabled>
-                            Parar
-                        </button>
-                        <button class="btn btn-warning" id="saveBtn" onclick="saveModel()" disabled>
-                            Salvar
-                        </button>
-                        <button class="btn btn-load" id="loadBtn" onclick="loadModel()">
-                            Carregar
-                        </button>
-                    </div>
-
-                    <div class="status-info">
-                        Status: <span id="status">Aguardando inicialização...</span>
-                    </div>
-
+                    <div class="progress-text" id="progressText">0/0 imagens processadas</div>
                 </div>
             </div>
         </div>
-    </div> 
-    
-    <script>
-        // ===================================================================
-        // JAVASCRIPT COMPLETO (INTEGRAÇÃO BD/RENDER)
-        // ===================================================================
-        
-        const RENDER_API_URL = 'https://sign2talk.onrender.com'; // Sua URL pública
-        
-        let modeloMobileNet;
-        let classificador;
-        let webcam;
-        let reconhecendo = false;
-        let animationFrameId = null;
-        
-        // ===================================================================
-        // FUNÇÕES DE UTILIDADE E CONTROLE
-        // ===================================================================
 
-        function atualizarStatus(mensagem) {
-            const statusElem = document.getElementById('status');
-            const statusText = document.getElementById('statusText');
-            if (statusElem) statusElem.textContent = mensagem;
-            if (statusText) statusText.textContent = `IA carregada! Clique em 'Iniciar'.`; // Mantém a mensagem principal como na imagem
-        }
-        
-        // Localize a área onde você tem as funções de IA (ex: perto de inicializarSistema)
+        <div class="cameras-container">
+            <div class="camera-box">
+                <h3 class="camera-title">📷 Webcam Original</h3>
+                <video id="webcam" class="webcam-view" autoplay playsinline></video>
+                <div class="detection-info" id="webcamInfo">
+                    Clique em "Iniciar Câmera"
+                </div>
+            </div>
 
-function criarBotoesLetras() {
-    const grid = document.getElementById('lettersGrid');
-    const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    
-    for (let letra of letras) {
-        const btn = document.createElement('button');
-        btn.className = 'btn-letter';
-        btn.id = 'train' + letra;
-        btn.textContent = letra;
-        btn.onclick = () => trainLetter(letra);
-        btn.disabled = true;
-        grid.appendChild(btn);
-    }
-}
-        
-        function habilitarControles() {
-            const buttons = ['recognizeBtn', 'stopBtn', 'saveBtn', 'loadBtn', 'captureBtn']; // captureBtn é o novo botão Treinar
-            buttons.forEach(id => {
-                const btn = document.getElementById(id);
-                if (btn) btn.disabled = false;
-            });
-            const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-            for (let letra of letras) {
-                const btn = document.getElementById('train' + letra);
-                if (btn) btn.disabled = false;
-            }
-        }
-        
-        // Função Wrapper para Treinar (o botão principal 'Treinar' não é mais para uma letra específica)
-        // O treinamento será disparado ao clicar no botão de letra. Este botão apenas habilita o treino.
-        function trainLetterWrapper() {
-             atualizarStatus("Pronto para treinar! Clique em uma das letras A-Z.");
-        }
-        
-        // Função auxiliar para atualizar as estatísticas de amostras
-        function atualizarContadorAmostras() {
-            // (Esta função é complexa, se ela estava no app.js, adicione-a aqui, ou mantenha-a simples)
-            // Lógica para contar amostras no classificador
-        }
+            <div class="camera-box">
+                <h3 class="camera-title">🖐️ Mão Detectada</h3>
+                <canvas id="handCanvas" class="hand-canvas"></canvas>
+                <div class="detection-info" id="handInfo">
+                    Inicie a câmera primeiro
+                </div>
+            </div>
+        </div>
 
-        // ===================================================================
-        // FUNÇÕES DE IA E LÓGICA DO PROJETO (Base do app.js)
-        // ===================================================================
-
-        async function inicializarSistema() {
-            try {
-                atualizarStatus("Carregando modelo de IA...");
-                modeloMobileNet = await mobilenet.load();
-                classificador = knnClassifier.create();
-                criarBotoesLetras(); // Cria os botões A-Z
-                atualizarStatus("IA carregada! Clique em 'Iniciar'.");
-            } catch (error) {
-                console.error("Erro na inicialização:", error);
-                atualizarStatus("Erro ao carregar IA.");
-            }
-        }
-        
-        async function initWebcam() {
-            const playBtn = document.getElementById('play');
-            try {
-                // ... (Lógica da câmera)
-                webcam = document.getElementById('webcam');
-                // ... (restante da lógica de permissão, stream, e play)
-                
-                // MOCK DE CÂMERA (Substitua por sua lógica real de webcam)
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                webcam.srcObject = stream;
-                await webcam.play();
-                
-                habilitarControles();
-                playBtn.textContent = 'Iniciado';
-                atualizarStatus("Câmera conectada!");
-            } catch (error) {
-                playBtn.textContent = 'Iniciar';
-                atualizarStatus("Erro na câmera.");
-            }
-        }
-        
-        // A função trainLetter foi mantida (ela é chamada quando clicamos nas letras A-Z)
-        async function trainLetter(letra) {
-             // ... (Sua lógica de treino por webcam, usando webcam, modeloMobileNet, etc.)
-             if (!webcam || !modeloMobileNet || !classificador) return;
-             // Lógica para capturar e adicionar amostra...
-             atualizarStatus(`${letra} treinada!`); // MOCK
-        }
-
-
-        // ========== INTEGRAÇÃO COM BANCO DE DADOS (RENDER) ==========
-        async function buscarGestoDoBD(letraReconhecida, confianca) {
-            const palavraChave = letraReconhecida.toUpperCase(); 
-            try {
-                const response = await fetch(`${RENDER_API_URL}/api/vocabulario/${palavraChave}`); 
-                if (response.status === 404) {
-                    atualizarResultado(letraReconhecida, confianca, null); 
-                    return;
-                }
-                const dadosGesto = await response.json();
-                atualizarResultado(dadosGesto.palavra || letraReconhecida, confianca, dadosGesto.url_imagem); 
-            } catch (error) {
-                 atualizarResultado(letraReconhecida, confianca, null);
-            }
-        }
-        
-        // ========== RECONHECIMENTO (COM INTEGRAÇÃO BD) ==========
-        async function startRecognition() {
-            // ... (Sua lógica de startRecognition() que chama buscarGestoDoBD)
+        <div class="controls-section">
+            <h3 class="section-title">🎯 Treinamento por Webcam</h3>
             
-            // MOCK: Apenas para simular a chamada API
-             if (!classificador) return;
-             reconhecendo = true;
-             while(reconhecendo) {
-                 // Simula a predição da IA e chama a API
-                 await buscarGestoDoBD('A', 85); 
-                 await new Promise(r => setTimeout(r, 500)); 
-                 if (!reconhecendo) break;
-             }
-        }
+            <div class="button-grid">
+                <button class="btn-webcam" onclick="initWebcam()" id="webcamBtn">🎥 Iniciar Câmera</button>
+                <button class="btn-recognize" onclick="startRecognition()" disabled id="recognizeBtn">🔍 Reconhecer</button>
+                <button class="btn-stop" onclick="stopRecognition()" disabled id="stopBtn">⏹️ Parar Tudo</button>
+                <button class="btn-save" onclick="saveModel()" disabled id="saveBtn">💾 Salvar Modelo</button>
+                <button class="btn-load" onclick="loadModel()" id="loadBtn">📂 Carregar Modelo</button>
+                <button class="btn-clear" onclick="clearModel()" id="clearBtn">🧹 Limpar Tudo</button>
+            </div>
 
-        function stopRecognition() {
-            reconhecendo = false;
-            atualizarStatus("Reconhecimento parado");
-        }
-        
-        // ========== ATUALIZAÇÃO DA INTERFACE COM IMAGEM BD ==========
-        function atualizarResultado(letraOuPalavra, confianca, urlImagem) { 
-            const resultadoElem = document.getElementById('resultado');
-            const confiancaElem = document.getElementById('confianca');
-            const imagemGesto = document.getElementById('imagemGesto'); 
+            <h4 style="margin: 15px 0 10px 0; color: #2c3e50;">Treinamento por Webcam:</h4>
+            <div class="letters-grid">
+                <button class="btn-train" onclick="trainLetter('A')" disabled id="trainA">A</button><button class="btn-train" onclick="trainLetter('B')" disabled id="trainB">B</button><button class="btn-train" onclick="trainLetter('C')" disabled id="trainC">C</button><button class="btn-train" onclick="trainLetter('D')" disabled id="trainD">D</button><button class="btn-train" onclick="trainLetter('E')" disabled id="trainE">E</button><button class="btn-train" onclick="trainLetter('F')" disabled id="trainF">F</button><button class="btn-train" onclick="trainLetter('G')" disabled id="trainG">G</button><button class="btn-train" onclick="trainLetter('H')" disabled id="trainH">H</button><button class="btn-train" onclick="trainLetter('I')" disabled id="trainI">I</button><button class="btn-train" onclick="trainLetter('J')" disabled id="trainJ">J</button><button class="btn-train" onclick="trainLetter('K')" disabled id="trainK">K</button><button class="btn-train" onclick="trainLetter('L')" disabled id="trainL">L</button><button class="btn-train" onclick="trainLetter('M')" disabled id="trainM">M</button><button class="btn-train" onclick="trainLetter('N')" disabled id="trainN">N</button><button class="btn-train" onclick="trainLetter('O')" disabled id="trainO">O</button><button class="btn-train" onclick="trainLetter('P')" disabled id="trainP">P</button><button class="btn-train" onclick="trainLetter('Q')" disabled id="trainQ">Q</button><button class="btn-train" onclick="trainLetter('R')" disabled id="trainR">R</button><button class="btn-train" onclick="trainLetter('S')" disabled id="trainS">S</button><button class="btn-train" onclick="trainLetter('T')" disabled id="trainT">T</button><button class="btn-train" onclick="trainLetter('U')" disabled id="trainU">U</button><button class="btn-train" onclick="trainLetter('V')" disabled id="trainV">V</button><button class="btn-train" onclick="trainLetter('W')" disabled id="trainW">W</button><button class="btn-train" onclick="trainLetter('X')" disabled id="trainX">X</button><button class="btn-train" onclick="trainLetter('Y')" disabled id="trainY">Y</button><button class="btn-train" onclick="trainLetter('Z')" disabled id="trainZ">Z</button>
+            </div>
+        </div>
 
-            if (resultadoElem && confiancaElem) {
-                resultadoElem.textContent = letraOuPalavra;
-                confiancaElem.textContent = `Confiança: ${confianca.toFixed(1)}%`;
-                
-                // Lógica de cor (Mantenha a cor da sua versão original)
-                // const cor = ...
-                
-                if (imagemGesto) {
-                    if (urlImagem) {
-                        imagemGesto.src = `${RENDER_API_URL}${urlImagem}`; 
-                        imagemGesto.style.display = 'block';
-                    } else {
-                        imagemGesto.style.display = 'none';
-                    }
-                }
-            }
-        }
-        
-        // MOCK das funções loadModel/saveModel para evitar erro (você deve inserir o código real)
-        async function loadModel() { atualizarStatus("Carregando modelo do Render."); }
-        async function saveModel() { atualizarStatus("Salvando modelo no Render."); }
-        
-        // ========== INICIALIZAÇÃO ==========
-        document.addEventListener('DOMContentLoaded', function() {
-            inicializarSistema();
+        <div class="results-section">
+            <h3 class="section-title">📊 Resultados em Tempo Real</h3>
             
-            document.getElementById('play').addEventListener('click', function() {
-                initWebcam();
-            });
-        });
-    </script>
+            <div class="prediction-box">
+                <h3 style="margin-bottom: 20px; font-size: 1.5em;">Sinal Reconhecido:</h3>
+                
+                <div id="resultado">---</div>
+                <div class="confidence" id="confianca">Confiança: 0%</div>
+                
+                <img id="imagemGesto" 
+                    style="display: none;" 
+                    alt="Gesto em Libras">
+            </div>
+            
+            <div class="status-box">
+                <strong>Status do Sistema:</strong> <span id="status">Clique em "Iniciar Câmera" para começar</span>
+            </div>
+            
+            <div class="samples-box">
+                <strong>📈 Estatísticas de Treino:</strong><br>
+                <span id="contadorAmostras">Nenhuma amostra treinada</span>
+            </div>
+        </div>
+
+        <footer>
+            <p>🤖 Desenvolvido com TensorFlow.js | Upload + Webcam</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
 </body>
 </html>
