@@ -315,20 +315,22 @@
             if (statusText) statusText.textContent = `IA carregada! Clique em 'Iniciar'.`; // Mantém a mensagem principal como na imagem
         }
         
-        function criarBotoesLetras() {
-            const grid = document.getElementById('lettersGrid');
-            const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-            for (let letra of letras) {
-                const btn = document.createElement('button');
-                btn.className = 'btn-letter';
-                btn.id = 'train' + letra;
-                btn.textContent = letra;
-                // O treinamento agora é feito pelo wrapper que pega a letra clicada
-                btn.onclick = () => trainLetter(letra);
-                btn.disabled = true;
-                grid.appendChild(btn);
-            }
-        }
+        // Localize a área onde você tem as funções de IA (ex: perto de inicializarSistema)
+
+function criarBotoesLetras() {
+    const grid = document.getElementById('lettersGrid');
+    const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    
+    for (let letra of letras) {
+        const btn = document.createElement('button');
+        btn.className = 'btn-letter';
+        btn.id = 'train' + letra;
+        btn.textContent = letra;
+        btn.onclick = () => trainLetter(letra);
+        btn.disabled = true;
+        grid.appendChild(btn);
+    }
+}
         
         function habilitarControles() {
             const buttons = ['recognizeBtn', 'stopBtn', 'saveBtn', 'loadBtn', 'captureBtn']; // captureBtn é o novo botão Treinar
