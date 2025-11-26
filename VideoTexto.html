@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign2Talk - Tradutor de Libras</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/handpose"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/knn-classifier"></script>
+    <style>
+        /* =========================================== */
+        /* ESTILOS DE LAYOUT (Recriados da Imagem) */
+        /* =========================================== */
+        
+        body {
+            background: linear-gradient(to top, #4e4d6d, #6f6da6, #6f6da6);
+            color: #eceff1;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* Centraliza tudo na horizontal */
+            min-height: 100vh;
+        }
+
+        nav {
+            width: 100%;
+            background-color: #181740; /* Cor da Nav */
+            padding: 10px 20px;
+            box-sizing: border-box; 
+        }
+
+        .innav {
+            display: flex;
+            justify-content: space-between; /* Ícones em lados opostos */
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Alinha pelo topo */
+            padding: 20px;
+            width: 100%;
+            max-width: 1200px; /* Limita a largura */
+            box-sizing: border-box;
+        }
+
+        .both {
+            display: flex;
+            flex-direction: row; /* Vídeo ao lado dos controles */
+            gap: 30px; /* Espaço entre o vídeo e os controles */
+            justify-content: center;
+            flex-wrap: wrap; 
+        }
+
+        .imageout {
+            width: 640px; /* Largura da câmera */
+            height: 480px; /* Altura da câmera */
+            background: #000000; /* Fundo preto antes da câmera ligar */
+            border-radius: 10px;
+            overflow: hidden; 
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .textout {
+            width: 300px; /* Largura da coluna de controles */
+            display: flex;
+            flex-direction: column;
+            gap: 15px; /* Espaço entre os elementos */
+        }
+
+        .innertext {
+            width: 100%;
+        }
+
+        .buttonscontainer {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .button { /* Botão Iniciar */
+            background: #181740;;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 25px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .button:hover { background: #06063b; }
+
+        .button2 { /* Botões de Ícone */
+            background: #181740;
+            border: none;
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .button2:hover { background: #06063b; }
+        .button2 img { height: 24px; }
+
+
+        /* =========================================== */
+        /* ESTILOS ANTIGOS (Que já estavam no HTML) */
+        /* =========================================== */
+        
+        .results-box {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        #resultado {
+            font-size: 2em;
+            margin: 8px 0;
+            min-height: 50px;
+        }
+
+        .confidence {
+            font-size: 1em;
+            opacity: 0.9;
+        }
+
+        .training-section {
+            margin: 10px 0;
+            text-align: center; /* Centraliza o título "Treinar Letras" */
+        }
+
+        .letters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(30px, 1fr));
+            gap: 4px;
+            margin: 8px 0;
+        }
+
+        .btn-letter {
+            background: #6c757d;
+            color: white;
+            padding: 6px 3px;
+            font-size: 11px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn-letter:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 8px;
+            margin: 8px 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+        }
+
+        .btn-success { background: #28a745; }
+        .btn-danger { background: #dc3545; }
+        .btn-warning { background: #ffc107; color: #212529; }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status-info {
+            background: #181740; 
+            padding: 8px;
+            border-radius: 4px;
+            margin: 4px 0;
+            border-left: 3px solid #007bff;
+            font-size: 12px;
+            color: #eceff1; 
+        }
+
+        .loading {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .imageout video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 10px;
+        }
+
+        #handCanvas {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="innav">
+            <p>
+                <img src="Group 1.svg" alt="Logo" style="scale: 0.7;">
+            </p>
+            <p>
+                <img src="account_circle.svg" alt="Conta">
+            </p>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="both">
+            <div class="imageout">
+                <video id="video" autoplay playsinline></video>
+                <canvas id="handCanvas"></canvas>
+            </div> 
+            <div class="textout">
+                <div class="innertext">
+                    <p id="statusText">Clique em "Iniciar" para começar</p>
+                    
+                    <div class="results-box">
+                        <div style="margin-bottom: 10px; font-size: 1em;">Sinal Reconhecido:</div>
+                        <div id="resultado">---</div>
+                        <div class="confidence" id="confianca">Confiança: 0%</div>
+                    </div>
+
+                </div> <div class="buttonscontainer">
+                    <button class="button2">
+                        <img src="image 21.svg" alt="Bandeira">
+                    </button>
+                    <button class="button" id="play">
+                        Iniciar
+                    </button>
+                    <button class="button2">
+                        <img src="Rectangle 92.svg" alt="Virar Câmera">
+                    </button>
+                </div>
+
+                <div class="training-section">
+                    <div style="margin-bottom: 8px; font-size: 0.9em;">Treinar Letras:</div>
+                    <div class="letters-grid" id="lettersGrid">
+                        </div>
+                </div>
+
+                <div class="control-buttons">
+                    <button class="btn btn-success" id="toggleDetectBtn" onclick="toggleHandDetection()" disabled>
+                        Detecção
+                    </button>
+                    <button class="btn btn-warning" id="captureBtn" onclick="captureHandForTraining()" disabled>
+                        Treinar
+                    </button>
+                    <button class="btn btn-success" id="recognizeBtn" onclick="startRecognition()" disabled>
+                        Reconhecer
+                    </button>
+                    <button class="btn btn-danger" id="stopBtn" onclick="stopRecognition()" disabled>
+                        Parar
+                    </button>
+                </div>
+
+                <div class="status-info">
+                    <strong>Status:</strong> <span id="status">Aguardando inicialização...</span>
+                </div>
+
+            </div> </div> </div> <script>
+        // ========== VARIÁVEIS GLOBAIS ==========
+        let modeloMobileNet;
+        let classificador;
+        let webcam;
+        let handCanvas;
+        let handCtx;
+
+        // Estados do sistema
+        let reconhecendo = false;
+        let detectandoMaos = false;
+        let animationFrameId = null;
+
+        // ========== INICIALIZAÇÃO DO SISTEMA ==========
+        async function inicializarSistema() {
+            try {
+                atualizarStatus("Carregando modelo de IA...");
+                
+                // Carregar modelos
+                modeloMobileNet = await mobilenet.load();
+                classificador = knnClassifier.create();
+                
+                console.log("Modelo de IA carregado");
+                atualizarStatus("IA carregada! Clique em 'Iniciar'.");
+                
+                // Criar botões das letras
+                criarBotoesLetras();
+                
+            } catch (error) {
+                console.error("Erro na inicialização:", error);
+                atualizarStatus("Erro ao carregar IA: " + error.message);
+            }
+        }
+
+        function criarBotoesLetras() {
+            const grid = document.getElementById('lettersGrid');
+            const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            
+            for (let letra of letras) {
+                const btn = document.createElement('button');
+                btn.className = 'btn-letter';
+                btn.id = 'train' + letra;
+                btn.textContent = letra;
+                btn.onclick = () => trainLetter(letra);
+                btn.disabled = true;
+                grid.appendChild(btn);
+            }
+        }
+
+        // ========== CONTROLE DA CÂMERA ==========
+        async function initWebcam() {
+            const playBtn = document.getElementById('play');
+            
+            try {
+                atualizarStatus("Solicitando acesso à câmera...");
+                playBtn.disabled = true;
+                playBtn.innerHTML = '<div class="loading"></div>'; /* Mostra só o loading */
+                
+                webcam = document.getElementById('video');
+                
+                const constraints = {
+                    video: {
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: "user"
+                    }
+                };
+                
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                webcam.srcObject = stream;
+                
+                await new Promise((resolve) => {
+                    webcam.onloadedmetadata = () => {
+                        webcam.play().then(resolve);
+                    };
+                });
+                
+                inicializarCanvas();
+                
+                habilitarControles();
+                atualizarStatus("Câmera conectada! Clique em 'Detecção'.");
+                
+                playBtn.disabled = false;
+                playBtn.textContent = 'Iniciado';
+                
+            } catch (error) {
+                console.error("Erro ao acessar câmera:", error);
+                atualizarStatus("Erro na câmera: " + error.message);
+                playBtn.disabled = false;
+                playBtn.textContent = 'Iniciar';
+                
+                if (error.name === 'NotAllowedError') {
+                    alert("Permissão da câmera negada! Por favor, permita o acesso à câmera.");
+                }
+            }
+        }
+
+        function inicializarCanvas() {
+            handCanvas = document.getElementById('handCanvas');
+            if (handCanvas) {
+                handCtx = handCanvas.getContext('2d');
+                const container = document.querySelector('.imageout');
+                if (container) {
+                    handCanvas.width = container.clientWidth;
+                    handCanvas.height = container.clientHeight;
+                } else {
+                    handCanvas.width = 640;
+                    handCanvas.height = 480;
+                }
+            }
+        }
+
+        function habilitarControles() {
+            document.getElementById('toggleDetectBtn').disabled = false;
+            document.getElementById('captureBtn').disabled = false;
+            
+            const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            for (let letra of letras) {
+                const btn = document.getElementById('train' + letra);
+                if (btn) btn.disabled = false;
+            }
+            
+            document.getElementById('recognizeBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = false;
+        }
+
+        // ========== DETECÇÃO DE MÃOS ==========
+        async function toggleHandDetection() {
+            if (!webcam) {
+                alert("Inicie a câmera primeiro!");
+                return;
+            }
+            
+            const btn = document.getElementById('toggleDetectBtn');
+            
+            if (!detectandoMaos) {
+                detectandoMaos = true;
+                btn.textContent = 'Parar Detecção';
+                btn.className = 'btn btn-danger';
+                atualizarStatus("Detectando mãos... Mostre sua mão para a câmera");
+                
+                detectionLoop();
+            } else {
+                detectandoMaos = false;
+                btn.textContent = 'Detecção';
+                btn.className = 'btn btn-success';
+                atualizarStatus("Detecção parada");
+                
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                }
+            }
+        }
+
+        async function detectionLoop() {
+            if (!detectandoMaos || !webcam) return;
+            
+            try {
+                if (handCtx) {
+                    // Futura detecção de mão (handpose) pode entrar aqui
+                }
+            } catch (error) {
+                console.error("Erro na detecção:", error);
+            }
+            
+            if (detectandoMaos) {
+                animationFrameId = requestAnimationFrame(detectionLoop);
+            }
+        }
+
+        // ========== TREINAMENTO ==========
+        async function captureHandForTraining() {
+            if (!webcam) {
+                alert("Inicie a câmera primeiro!");
+                return;
+            }
+            
+            if (!detectandoMaos) {
+                alert("Inicie a detecção de mãos primeiro!");
+                return;
+            }
+            
+            atualizarStatus("Pronto para treinar! Clique em uma letra.");
+        }
+
+        async function trainLetter(letra) {
+            if (!classificador || !webcam) {
+                alert("Aguarde a IA e câmera carregarem completamente!");
+                return;
+            }
+            
+            if (!detectandoMaos) {
+                alert("Inicie a detecção de mãos primeiro!");
+                return;
+            }
+            
+            try {
+                const imagem = tf.browser.fromPixels(webcam);
+                const imagemRedimensionada = tf.image.resizeBilinear(imagem, [224, 224]);
+                const caracteristicas = modeloMobileNet.infer(imagemRedimensionada, true);
+                
+                classificador.addExample(caracteristicas, letra);
+                
+                imagem.dispose();
+                imagemRedimensionada.dispose();
+                caracteristicas.dispose();
+                
+                const count = classificador.getClassExampleCount()[letra] || 1;
+                atualizarStatus(`${letra} treinada! (${count} amostras)`);
+                
+            } catch (error) {
+                console.error("Erro no treinamento:", error);
+                atualizarStatus("Erro ao treinar " + letra);
+            }
+        }
+
+        // ========== RECONHECIMENTO ==========
+        async function startRecognition() {
+            if (!classificador || Object.keys(classificador.getClassExampleCount()).length === 0) {
+                alert("Treine algumas letras primeiro!");
+                return;
+            }
+            
+            if (!webcam) {
+                alert("Inicie a câmera primeiro!");
+                return;
+            }
+            
+            reconhecendo = true;
+            const recognizeBtn = document.getElementById('recognizeBtn');
+            recognizeBtn.textContent = 'Reconhecendo...';
+            recognizeBtn.disabled = true;
+            
+            atualizarStatus("Reconhecendo... Faça sinais na câmera");
+            
+            while (reconhecendo) {
+                try {
+                    const imagem = tf.browser.fromPixels(webcam);
+                    const imagemRedimensionada = tf.image.resizeBilinear(imagem, [224, 224]);
+                    const caracteristicas = modeloMobileNet.infer(imagemRedimensionada, true);
+                    
+                    const resultado = await classificador.predictClass(caracteristicas);
+                    const confianca = (resultado.confidences[resultado.label] * 100);
+                    
+                    if (confianca > 50) {
+                        atualizarResultado(resultado.label, confianca);
+                    }
+                    
+                    imagem.dispose();
+                    imagemRedimensionada.dispose();
+                    caracteristicas.dispose();
+                    
+                    await tf.nextFrame();
+                    
+                } catch (error) {
+                    console.error("Erro no reconhecimento:", error);
+                    break;
+                }
+            }
+            
+            recognizeBtn.textContent = 'Reconhecer';
+            recognizeBtn.disabled = false;
+        }
+
+        function stopRecognition() {
+            reconhecendo = false;
+            detectandoMaos = false;
+            
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+            
+            const detectBtn = document.getElementById('toggleDetectBtn');
+            detectBtn.textContent = 'Detecção';
+            detectBtn.className = 'btn btn-success';
+            
+            atualizarStatus("Reconhecimento parado");
+        }
+
+        // ========== ATUALIZAÇÃO DA INTERFACE ==========
+        function atualizarResultado(letra, confianca) {
+            const resultadoElem = document.getElementById('resultado');
+            const confiancaElem = document.getElementById('confianca');
+            
+            if (resultadoElem && confiancaElem) {
+                resultadoElem.textContent = letra;
+                confiancaElem.textContent = `Confiança: ${confianca.toFixed(1)}%`;
+                
+                if (confianca > 80) {
+                    resultadoElem.style.color = '#2ecc71';
+                } else if (confianca > 60) {
+                    resultadoElem.style.color = '#f39c12';
+                } else {
+                    resultadoElem.style.color = '#e74c3c';
+                }
+            }
+        }
+
+        function atualizarStatus(mensagem) {
+            const statusElem = document.getElementById('status');
+            const statusText = document.getElementById('statusText');
+            
+            if (statusElem) statusElem.textContent = mensagem;
+            if (statusText) statusText.textContent = mensagem;
+        }
+
+        // ========== INICIALIZAÇÃO ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("Inicializando Sign2Talk...");
+            inicializarSistema();
+            
+            document.getElementById('play').addEventListener('click', function() {
+                initWebcam();
+            });
+        });
+    </script>
+</body>
+</html>
