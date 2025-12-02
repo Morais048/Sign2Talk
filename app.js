@@ -14,20 +14,26 @@ let reconhecendo = false;
 let animationFrameId = null; 
 
 // ========== INICIALIZAÇÃO E CARREGAMENTO DE IA ==========
+// Localize e substitua a função inicializarSistema no seu JS:
+
 async function inicializarSistema() {
     try {
         atualizarStatus("🔄 Carregando modelo de IA (MobileNet)...");
         modeloMobileNet = await mobilenet.load();
         classificador = knnClassifier.create();
         
-        // NOVO: Adiciona a chamada para criar os botões A-Z
-        criarBotoesLetras();
+        // 🚨 REMOVENDO a linha problemática que causava o erro "Cannot set properties of null":
+        // A lógica de habilitação dos botões agora está APENAS dentro de habilitarControles() 
+        // ou loadModel().
         
-        // 🚨 CORREÇÃO DE ID: Removido o 'document.getElementById('loadBtn').disabled = false'
-        // A função habilitarControlesWebcam() fará isso após a câmera iniciar, e a criação
-        // de botões no HTML já resolve o erro anterior.
+        criarBotoesLetras(); // Cria os botões A-Z
         
         atualizarStatus("✅ IA carregada! Clique em 'Iniciar'.");
+        
+        // CORREÇÃO ADICIONAL: Tente carregar o modelo salvo automaticamente aqui.
+        // Isso vai tentar o loadModel() sem causar o erro de inicialização.
+        await loadModel(); // Tenta carregar o modelo salvo no Render
+        
     } catch (error) {
         console.error("Erro na inicialização:", error);
         atualizarStatus("❌ Erro ao carregar IA: " + error.message);
@@ -281,3 +287,4 @@ function atualizarStatus(mensagem) {
 document.addEventListener('DOMContentLoaded', function() {
     inicializarSistema();
 });
+
