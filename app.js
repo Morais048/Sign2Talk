@@ -94,10 +94,12 @@ async function initWebcam() {
 }
 
 function habilitarControlesWebcam() {
-    const buttons = ['recognizeBtn', 'stopBtn', 'saveBtn', 'clearBtn', 'captureBtn']; // captureBtn é o Treinar
+    // A lista de botões a habilitar DEVE incluir o 'loadBtn' se ele estava desabilitado por padrão
+    const buttons = ['recognizeBtn', 'stopBtn', 'saveBtn', 'clearBtn', 'loadBtn']; // Certifique-se de que 'loadBtn' está aqui
+    
     buttons.forEach(id => {
         const btn = document.getElementById(id);
-        if (btn) btn.disabled = false;
+        if (btn) btn.disabled = false; // O 'if (btn)' é a segurança para evitar o erro 'null'
     });
     
     const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -287,4 +289,5 @@ function atualizarStatus(mensagem) {
 document.addEventListener('DOMContentLoaded', function() {
     inicializarSistema();
 });
+
 
